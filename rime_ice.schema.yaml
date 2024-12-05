@@ -68,6 +68,7 @@ engine:
     - table_translator@radical_lookup   # 部件拆字反查
     - lua_translator@unicode            # Unicode
     - lua_translator@number_translator  # 数字、金额大写
+    - lua_translator@calc_translator    # 计算器
     - lua_translator@force_gc           # 暴力 GC
   filters:
     - lua_filter@is_in_user_dict # 用户词典的词加上一个*
@@ -127,7 +128,7 @@ reduce_english_filter:
   words: [
     aid, ann,
     bail, bait, bam, band, bans, bat, bay, bend, bent, benz, bib, bid, bien, biz, boc, bop, bos, bud, buf, bach, bench, bush,
-    cab, cad, cain, cam, cans, cap, cas, cef, chad, chan, chap, chef, cher, chew, chic, chin, chip, chit, coup, cum, cunt, cur, couch,
+    cab, cad, cain, cam, cans, cap, cef, chad, chan, chap, chef, cher, chew, chic, chin, chip, chit, coup, cum, cunt, cur, couch,
     dab, dag, dal, dam, dent, dew, dial, diet, dim, din, dip, dis, dit, doug, dub, dug, dunn, don,
     fab, fax, fob, fog, foul, fur,
     gag, gail, gain, gal, gam, gaol, ged, gel, ger, guam, gus, gut,
@@ -141,9 +142,10 @@ reduce_english_filter:
     rand, rant, rent, rep, res, ret, rex, rib, rid, rig, rim, rub, rug, rum, runc, runs, ranch,
     sac, sail, sal, sam, sans, sap, saw, sax, sew, sham, shaw, shin, sig, sin, sip, sis, suit, sung, suns, sup, sur, sus,
     tad, tail, taj, tar, tax, tec, ted, tel, ter, tex, tic, tied, tier, ties, tim, tin, tit, tour, tout, tum,
-    wag, wand, womens, wap, wax, weir, won,
+    wag, wand, womens, wap, wax, weir, won, went,
     yan, yen,
-    zach
+    zach,
+    my, mt, dj, as, js, cs, ak, ps, cd, cn, hk, bt, pk, ml  # 一些由算法转写的大写单词编码，会影响简拼（全拼专有）
   ]
 
 
@@ -290,19 +292,20 @@ pin_cand_filter:
 
 # 主翻译器，拼音
 translator:
-  dictionary: rime_ice        # 挂载词库 rime_ice.dict.yaml
-  spelling_hints: 8           # corrector.lua ：为了让错音错字提示的 Lua 同时适配全拼双拼，将拼音显示在 comment 中
-  always_show_comments: true  # corrector.lua ：Rime 默认在 preedit 等于 comment 时取消显示 comment，这里强制一直显示，供 corrector.lua 做判断用。
-  initial_quality: 1.2        # 拼音的权重应该比英文大
-  comment_format:             # 标记拼音注释，供 corrector.lua 做判断用
+  dictionary: rime_ice         # 挂载词库 rime_ice.dict.yaml
+  enable_word_completion: true # 大于 4 音节的词条自动补全，librime > 1.11.2
+  spelling_hints: 8            # corrector.lua ：为了让错音错字提示的 Lua 同时适配全拼双拼，将拼音显示在 comment 中
+  always_show_comments: true   # corrector.lua ：Rime 默认在 preedit 等于 comment 时取消显示 comment，这里强制一直显示，供 corrector.lua 做判断用。
+  initial_quality: 1.2         # 拼音的权重应该比英文大
+  comment_format:              # 标记拼音注释，供 corrector.lua 做判断用
     - xform/^/［/
     - xform/$/］/
-  preedit_format:             # preedit_format 影响到输入框的显示和“Shift+回车”上屏的字符
-    - xform/([jqxy])v/$1u/    # 显示为 ju qu xu yu
-    # - xform/([nl])v/$1ü/    # 显示为 nü lü
-    # - xform/([nl])ue/$1üe/  # 显示为 nüe lüe
-    - xform/([nl])v/$1v/      # 显示为 nv lv
-    - xform/([nl])ue/$1ve/    # 显示为 nve lve
+  preedit_format:              # preedit_format 影响到输入框的显示和“Shift+回车”上屏的字符
+    - xform/([jqxy])v/$1u/     # 显示为 ju qu xu yu
+    # - xform/([nl])v/$1ü/     # 显示为 nü lü
+    # - xform/([nl])ue/$1üe/   # 显示为 nüe lüe
+    - xform/([nl])v/$1v/       # 显示为 nv lv
+    - xform/([nl])ue/$1ve/     # 显示为 nve lve
 
 
 # 次翻译器，英文
@@ -388,12 +391,13 @@ radical_reverse_lookup:
 
 # 处理符合特定规则的输入码，如网址、反查
 recognizer:
-  import_preset: default  # 从 default.yaml 继承通用的
-  patterns:  # 再增加方案专有的：
+  import_preset: default                # 从 default.yaml 继承通用的
+  patterns:                             # 再增加方案专有的：
     punct: "^v([0-9]|10|[A-Za-z]+)$"    # 响应 symbols_v.yaml 的 symbols，用 'v' 替换 '/'
     radical_lookup: "^uU[a-z]+$"        # 响应部件拆字的反查，与 radical_lookup/prefix 匹配
     unicode: "^U[a-f0-9]+"              # 脚本将自动获取第 2 个字符 U 作为触发前缀，响应 lua_translator@unicode，输出 Unicode 字符
     number: "^R[0-9]+[.]?[0-9]*"        # 脚本将自动获取第 2 个字符 R 作为触发前缀，响应 lua_translator@number_translator，数字金额大写
+    calculator: "^cC.+"                 # 响应 lua_translator@calc_translator，计算器。前缀设定项 calculator/prefix
     gregorian_to_lunar: "^N[0-9]{1,8}"  # 脚本将自动获取第 2 个字符 N 作为触发前缀，响应 lua_translator@lunar，公历转农历，输入 N20240115 得到「二〇二三年腊月初五」
 
 

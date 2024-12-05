@@ -20,6 +20,9 @@ unicode = require("unicode")
 -- 数字、人民币大写，R 开头
 number_translator = require("number_translator")
 
+-- 计算器
+calc_translator = require("calc_translator")
+
 -- filters:
 
 -- 错音错字提示
@@ -50,8 +53,8 @@ long_word_filter = require("long_word_filter")
 -- 在 engine/filters 增加 - lua_filter@cn_en_spacer
 cn_en_spacer = require("cn_en_spacer")
 
--- 英文词条上屏自动空格
--- 在 engine/filters 增加 - lua_filter@en_spacer
+-- 英文词条上屏自动添加空格
+-- 在 engine/filters 的倒数第二个位置，增加 - lua_filter@en_spacer
 en_spacer = require("en_spacer")
 
 -- 九宫格，将输入框的数字转为对应的拼音或英文，iRime 用，Hamster 不需要。
